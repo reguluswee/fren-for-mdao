@@ -1,10 +1,13 @@
 package event
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -158,6 +161,7 @@ func BatchMdaoIssue() ([]MdaoData, []MdaoBlockError) {
 			wg.Wait()
 		}
 	}
+	writeFile(resultList, "mdao.data")
 	return resultList, errorList
 }
 
@@ -166,5 +170,26 @@ func createErr(block uint64, txhash string) MdaoBlockError {
 		AddTime: time.Now(),
 		Block:   block,
 		Txhash:  txhash,
+	}
+}
+
+func writeFile(resultList []MdaoData, fileName string) {
+	filePath := "~/" + fileName
+	// file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0766)
+	if err != nil {
+		log.Fatal("文件打开失败", err)
+	}
+	//及时关闭file句柄
+	defer file.Close()
+	write := bufio.NewWriter(file)
+
+	for i := range resultList {
+		v, err := json.Marshal(resultList[i])
+		if err != nil {
+			log.Fatal("store json data error", err)
+		}
+		write.WriteString(string(v) + "\r\n")
+		write.Flush()
 	}
 }
